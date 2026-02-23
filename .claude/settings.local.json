@@ -2,7 +2,20 @@
   "permissions": {
     "allow": [
       "Bash(npm install:*)",
-      "Bash(npx prisma init:*)"
+      "Bash(npm run *)",
+      "Bash(npx prisma *)",
+      "Bash(npx create-next-app:*)",
+      "Bash(docker compose *)",
+      "Bash(docker *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(git branch *)",
+      "Bash(mkdir *)",
+      "Bash(sleep *)",
+      "Bash(start *)",
+      "Bash(node *)",
+      "Bash(npm run build)"
     ]
   }
 }
