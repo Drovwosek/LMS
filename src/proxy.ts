@@ -1,14 +1,16 @@
-import { auth } from "@/lib/auth";
+import NextAuth from "next-auth";
+import { authConfig } from "@/lib/auth.config";
 import { NextResponse } from "next/server";
 
-const PUBLIC_PATHS = ["/login", "/register", "/invite"];
+const { auth } = NextAuth(authConfig);
 
 export default auth((req) => {
   const { pathname } = req.nextUrl;
 
-  // Пропускаем публичные роуты
   const isPublic =
-    PUBLIC_PATHS.some((p) => pathname.startsWith(p)) ||
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/register") ||
+    pathname.startsWith("/invite") ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/invite") ||
     pathname.startsWith("/api/companies");
@@ -24,12 +26,12 @@ export default auth((req) => {
 
   const user = req.auth.user;
 
-  // Роуты /admin/* — только ADMIN
+  // /admin/* — только ADMIN
   if (pathname.startsWith("/admin") && user.role !== "ADMIN") {
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 
-  // Роуты /courses/* — только те, кто может создавать курсы
+  // /courses/* — только те, кто может создавать курсы
   if (pathname.startsWith("/courses") && !user.canCreateCourses) {
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
