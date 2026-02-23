@@ -1,0 +1,158 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  EXPIRED
+}
+
+enum Role {
+  ADMIN
+  WORKER
+}
+
+enum CourseAssignmentStatus {
+  ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum NotificationType {
+  COURSE_ASSIGNED
+}
+
+// ---------------------------------------------------------------------------
+// Models
+// ---------------------------------------------------------------------------
+
+model Company {
+  id                    String             @id @default(cuid())
+  name                  String
+  subscriptionStatus    SubscriptionStatus @default(TRIAL)
+  subscriptionExpiresAt DateTime?
+  createdAt             DateTime           @default(now())
+
+  users   User[]
+  courses Course[]
+}
+
+model User {
+  id               String   @id @default(cuid())
+  companyId        String
+  fullName         String
+  email            String?
+  passwordHash     String?
+  role             Role     @default(WORKER)
+  canCreateCourses Boolean  @default(false)
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+
+  company           Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  inviteTokens      InviteToken[]
+  courseAssignments CourseAssignment[]
+  notifications     Notification[]
+  uploadedFiles     File[]
+  createdCourses    Course[]
+
+  @@unique([companyId, email])
+  @@index([companyId, isActive])
+}
+
+model InviteToken {
+  id        String    @id @default(cuid())
+  token     String    @unique @default(cuid())
+  userId    String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Course {
+  id          String   @id @default(cuid())
+  companyId   String
+  createdById String
+  title       String
+  description String?
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company     Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdBy   User               @relation(fields: [createdById], references: [id])
+  tasks       Task[]
+  files       File[]
+  assignments CourseAssignment[]
+
+  @@index([companyId])
+}
+
+model Task {
+  id        String   @id @default(cuid())
+  courseId  String
+  title     String
+  content   String?
+  order     Int
+  createdAt DateTime @default(now())
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  files  File[]
+
+  @@index([courseId, order])
+}
+
+model File {
+  id           String   @id @default(cuid())
+  courseId     String?
+  taskId       String?
+  uploadedById String
+  fileName     String
+  fileKey      String
+  fileSize     Int
+  mimeType     String
+  createdAt    DateTime @default(now())
+
+  course     Course? @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  task       Task?   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  uploadedBy User    @relation(fields: [uploadedById], references: [id])
+}
+
+model CourseAssignment {
+  id          String                 @id @default(cuid())
+  userId      String
+  courseId    String
+  status      CourseAssignmentStatus @default(ASSIGNED)
+  assignedAt  DateTime               @default(now())
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  payload   Json
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+}
